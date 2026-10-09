@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f3f5f7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Timer">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Timer Allenamento v13</title>
+<style>
+*{box-sizing:border-box}
+:root{--green:#2bd65f;--blue:#3b82f6;--red:#ff3b30;--ink:#172033;--muted:#6f7787;--line:#e7eaf0;--panel:#f7f8fa;--card:#ffffff}
+html,body{margin:0;min-height:100%;background:#f3f5f7;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif}
+body{transition:background .25s}
+.app{width:100%;max-width:520px;margin:auto;padding:calc(16px + env(safe-area-inset-top)) 16px calc(22px + env(safe-area-inset-bottom))}
+button,input{font:inherit}button{border:0;cursor:pointer}button:active{transform:scale(.98)}
+h1{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.card{background:transparent;border-radius:28px;margin:0}
+.display{position:relative;padding:4px 0 0;text-align:center}
+.topbar{display:grid;grid-template-columns:54px minmax(0,1fr) 48px;gap:10px;align-items:center;text-align:left;margin:2px 2px 0}
+.step-badge{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:#fff;border:1px solid #e2e5ea;box-shadow:0 8px 20px rgba(26,35,52,.08);font-size:14px;font-weight:700;color:#30394a}
+.exercise-head{min-width:0}.eyebrow{font-size:12px;color:#788092;margin-bottom:2px}.exercise-name{font-size:23px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.05}
+.phase-pill{justify-self:end;display:flex;align-items:center;gap:7px;padding:9px 13px;border-radius:999px;background:#e6f8eb;color:#15843a;font-size:13px;font-weight:700;white-space:nowrap}.phase-dot{width:11px;height:11px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(43,214,95,.14)}
+.gear{width:46px;height:46px;padding:0;border-radius:50%;background:#fff;color:#263044;border:1px solid #e3e6eb;box-shadow:0 8px 20px rgba(26,35,52,.08);font-size:22px;position:static;justify-self:end}
+.timer-ring{width:min(76vw,326px);aspect-ratio:1;margin:22px auto 14px;border-radius:50%;display:grid;place-items:center;position:relative;background:conic-gradient(from -90deg,var(--ring,#2bd65f) 0deg,var(--ring-progress,360deg),#e2e5ea var(--ring-progress,360deg) 360deg);padding:10px;filter:drop-shadow(0 10px 20px rgba(34,44,60,.10));transition:background .15s linear}
+.timer-ring::before{content:"";position:absolute;inset:7px;border-radius:50%;border:1px solid rgba(255,255,255,.8);pointer-events:none}.timer-ring.rest{--ring:var(--blue)}.timer-ring.done{--ring:#8c95a4}
+.timer-inner{width:100%;height:100%;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:background .08s,box-shadow .08s;box-shadow:inset 0 0 0 1px #eef0f3}
+.timer{font-size:64px;line-height:1;font-weight:300;letter-spacing:-2.8px;font-variant-numeric:tabular-nums;color:#182133}.status{min-height:21px;margin-top:8px;font-size:14px;color:#727b8a}.bpm{margin-top:9px;font-size:15px;font-weight:600;color:#273147;display:flex;align-items:center;gap:7px}.pulse-mini{font-size:18px;color:var(--green)}
+.camera-alert .timer-inner{background:#d71924;color:#fff;box-shadow:0 0 46px rgba(255,59,48,.72);animation:innerFlash .48s steps(2,end) infinite}.camera-alert .timer{color:#fff}.camera-alert .status,.camera-alert .bpm{color:#fff}.camera-alert .timer-ring{--ring:var(--red)!important}@keyframes innerFlash{0%,100%{background:#4d080b;box-shadow:0 0 12px rgba(255,59,48,.3)}50%{background:#d71924;box-shadow:0 0 60px rgba(255,59,48,.95)}}
+.next{min-height:76px;margin:4px 4px 0;padding:13px 17px;border-radius:20px;background:#edf5ff;border:1px solid #d7e7fb;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;color:#172033}.next-copy{min-width:0}.next .next-label{font-size:12px;color:#2d73d5;font-weight:600}.next strong{display:block;font-size:21px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.next-meta{flex:0 0 auto;padding:8px 12px;border-radius:16px;background:#e5eefb;text-align:center;color:#274a7e;font-variant-numeric:tabular-nums}.next-time{font-size:17px;font-weight:700}.next-bpm{font-size:11px;margin-top:2px;opacity:.72}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:34px;margin:18px 28px 0;align-items:start}.action-wrap{display:flex;flex-direction:column;align-items:center;gap:6px}.action-label{font-size:13px;font-weight:600;color:#5f6878}.action-btn{width:78px;height:78px;border-radius:50%;padding:0;display:grid;place-items:center;font-size:29px;background:#fff;color:#263044;border:3px solid var(--action-color,#2bd65f);box-shadow:0 9px 22px rgba(26,35,52,.09);transition:.2s}.action-btn.ready{background:var(--green);color:#fff;border-color:var(--green);box-shadow:0 10px 28px rgba(43,214,95,.30)}.action-btn.running,.action-btn.paused{background:#fff;color:var(--action-color,#2bd65f);border-color:var(--action-color,#2bd65f);box-shadow:0 9px 22px rgba(26,35,52,.09)}.action-btn.reset{background:#fff}
+.extra-controls{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:24px;margin:21px 4px 0;padding-top:23px}.pulse-line{position:absolute;top:0;left:0;right:0;height:2px;background:var(--line-color,var(--green));opacity:.42}.pulse-line::after{content:"";position:absolute;left:50%;top:50%;width:11px;height:11px;border-radius:50%;background:var(--line-color,var(--green));transform:translate(-50%,-50%);box-shadow:0 0 13px var(--line-color,var(--green));animation:heartPulse .95s ease-in-out infinite}@keyframes heartPulse{0%,100%{transform:translate(-50%,-50%) scale(.65);opacity:.65}12%{transform:translate(-50%,-50%) scale(1.5);opacity:1}22%{transform:translate(-50%,-50%) scale(.8);opacity:.8}32%{transform:translate(-50%,-50%) scale(1.15);opacity:1}55%{transform:translate(-50%,-50%) scale(.7);opacity:.65}}
+.spotify{background:#fff;color:#111;width:62px;height:62px;border-radius:50%;padding:0;margin:auto;border:1px solid #dfe3e9;box-shadow:0 8px 18px rgba(26,35,52,.08);font-size:25px}.camera-card{display:flex;align-items:center;justify-content:center;gap:8px;background:transparent!important;padding:0!important;margin:0!important;flex-direction:column;border:0!important}.camera-label{font-size:13px;font-weight:600;color:#5f6878;display:flex;align-items:center;gap:7px}.camera-icon{font-size:22px;color:#2b3445}.switch{position:relative;width:58px;height:34px;flex:0 0 auto}.switch input{opacity:0;width:0;height:0;position:absolute}.slider{position:absolute;inset:0;background:#c9ced7;border-radius:34px;transition:.2s;cursor:pointer}.slider:before{content:"";position:absolute;width:28px;height:28px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 2px 5px rgba(0,0,0,.18)}.switch input:checked + .slider{background:#34c759}.switch input:checked + .slider:before{transform:translateX(24px)}.switch-text{font-size:12px;color:#687182}.camera-card .small{font-size:12px;color:#6d7686}.camera-card:has(input:checked) .camera-label{color:#169143}.camera-card:has(input:checked) .camera-icon{color:#34c759}
+.mini-seq{margin:19px 0 0;padding:8px 2px 0;display:flex;gap:10px;overflow-x:auto;scrollbar-width:none}.mini-seq::-webkit-scrollbar{display:none}.mini-item{flex:0 0 78px;text-align:center;color:#7a8290}.mini-dot{width:38px;height:38px;margin:0 auto 6px;border-radius:50%;display:grid;place-items:center;background:#d9dde4;color:#fff;font-weight:700;border:3px solid transparent}.mini-item.active .mini-dot{background:var(--green);box-shadow:0 0 0 4px rgba(43,214,95,.16);border-color:#fff}.mini-item.next .mini-dot{background:var(--blue)}.mini-name{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mini-time{font-size:10px;margin-top:2px;opacity:.75}
+.settings-panel{background:#fff;border-radius:26px;padding:14px;margin-bottom:14px;box-shadow:0 10px 30px rgba(26,35,52,.08);border:1px solid #e5e8ed}.settings-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.settings-head button{width:42px;height:42px;padding:0;border-radius:50%;background:#f0f2f5;color:#283144}.settings-title{font-size:20px;font-weight:700}.settings-section{font-size:12px;color:#7a8290;margin:16px 2px 7px;text-transform:uppercase;letter-spacing:.7px}.setting-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 4px;border-bottom:1px solid #eceef2}.setting-row:last-child{border-bottom:0}.setting-name{font-size:16px}.setting-value{font-size:14px;color:#7a8290}.card.sequence-card{background:#f7f8fa;padding:13px;margin-top:10px;border-radius:20px}.sequence-title{display:flex;justify-content:space-between;align-items:center}.small{font-size:12px;color:#7a8290}.row{display:grid;grid-template-columns:42px minmax(0,1fr) 42px;gap:8px;align-items:center;margin-top:10px;padding:10px;border-radius:16px;background:#fff;border:1px solid #e8ebef;transition:transform .12s,opacity .12s,background .12s}.num{text-align:center;font-weight:800;font-size:14px;opacity:.75}.row label{display:block;font-size:10px;color:#778091;margin:0 0 3px 2px}.row input{width:100%;border:1px solid #e2e5ea;border-radius:10px;background:#fff;color:#111;padding:9px 6px;text-align:center;font-size:17px;font-weight:700;min-width:0}.row input[type=text]{text-align:left;padding-left:10px}.drag-handle{grid-column:1;grid-row:1;width:42px;height:42px;padding:0;font-size:22px;line-height:1;background:#eef1f4;color:#465064;cursor:grab;touch-action:none;user-select:none}.drag-handle:active{cursor:grabbing}.name-field{grid-column:2;grid-row:1;min-width:0}.del{grid-column:3;grid-row:1;width:42px;height:42px;padding:0;font-size:24px;background:#f1f3f6;color:#667083}.fields{grid-column:1 / -1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.row.dragging{opacity:.45;background:#e9faee}.drag-placeholder{height:8px;border-radius:8px;background:var(--green);margin:7px 0;box-shadow:0 0 10px rgba(43,214,95,.35)}.add{width:100%;margin-top:11px;background:#e9f8ed;color:#168f40}.test-alarm{background:#fff0ef;color:#c12620;border:1px solid #ffd0cc;margin-top:12px;width:100%}.note{font-size:13px;line-height:1.45;color:#6f7787}.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#202633;color:#fff;padding:11px 14px;border-radius:12px;font-size:14px;z-index:5;box-shadow:0 8px 25px rgba(0,0,0,.2)}.hidden{display:none}.back{position:absolute;left:0;top:4px;width:44px;height:44px;padding:0;border-radius:50%;background:#fff;color:#263044;font-size:25px;border:1px solid #e3e6eb;box-shadow:0 8px 20px rgba(26,35,52,.08)}
+@media(max-width:430px){.topbar{grid-template-columns:48px minmax(0,1fr) 46px;gap:8px}.step-badge{width:44px;height:44px}.exercise-name{font-size:21px}.phase-pill{padding:8px 10px;font-size:12px}.timer-ring{width:min(78vw,310px)}.timer{font-size:57px}.next{min-height:72px}.controls{margin-left:24px;margin-right:24px}}
+@media(prefers-reduced-motion:reduce){.pulse-line::after,.camera-alert .timer-inner{animation:none}}
+</style>
+</head>
+<body>
+<div class="app">
+<h1>Timer Allenamento</h1>
+
+<section id="settingsPanel" class="settings-panel hidden">
+  <div class="settings-head"><div class="settings-title">Impostazioni</div><button id="closeSettings" aria-label="Chiudi impostazioni">×</button></div>
+  <div class="settings-section">Generali</div>
+  <div class="setting-row"><span class="setting-name">Ritmo (BPM)</span><span id="bpmSummary" class="setting-value">30</span></div>
+  <div class="setting-row"><span class="setting-name">Allarme telecamera</span><label class="switch" aria-label="Attiva o disattiva allarme telecamera"><input id="cameraAlarmSettings" type="checkbox"><span class="slider"></span></label></div>
+  <button id="testCamera" class="test-alarm">⚠ Test allarme telecamera</button>
+  <div class="settings-section">Sequenza esercizi</div>
+  <section class="card sequence-card">
+    <div class="sequence-title"><strong>Sequenza</strong><span id="saved" class="small">salvata</span></div>
+    <div id="rows"></div>
+    <button id="add" class="add">＋ Aggiungi esercizio</button>
+  </section>
+</section>
+
+<section id="displayCard" class="card display">
+  <button id="back" class="back hidden" aria-label="Indietro">‹</button>
+  <div class="topbar">
+    <div id="stepBadge" class="step-badge">1/1</div>
+    <div class="exercise-head"><div class="eyebrow">Esercizio</div><div id="exerciseName" class="exercise-name">Esercizio 1</div></div>
+    <button id="gear" class="gear" aria-label="Impostazioni">⚙</button>
+  </div>
+  <div id="phasePill" class="phase-pill"><span class="phase-dot"></span><span id="phasePillText">Esercizio</span></div>
+  <div id="timerRing" class="timer-ring" aria-label="Timer">
+    <div class="timer-inner">
+      <div id="timer" class="timer">00:30</div>
+      <div id="status" class="status">Pronto</div>
+      <div class="bpm"><span class="pulse-mini">⌁</span><span id="bpmValue">30 BPM</span></div>
+    </div>
+  </div>
+  <div id="next" class="next"></div>
+</section>
+
+<div class="controls">
+  <div class="action-wrap"><button id="start" class="action-btn ready" aria-label="Avvia timer">▶</button><div id="startLabel" class="action-label">Start</div></div>
+  <div class="action-wrap"><button id="reset" class="action-btn reset" aria-label="Reset timer">↻</button><div class="action-label">Reset</div></div>
+</div>
+
+<div id="extraControls" class="extra-controls">
+  <div id="pulseLine" class="pulse-line" aria-hidden="true"></div>
+  <div class="action-wrap"><button id="spotify" class="spotify" aria-label="Apri Spotify">♫</button><div class="action-label">Spotify</div></div>
+  <div class="camera-card">
+    <div class="camera-label"><span class="camera-icon">◉</span><span>Allarme telecamera</span></div>
+    <label class="switch" aria-label="Attiva o disattiva allarme telecamera"><input id="cameraAlarm" type="checkbox"><span class="slider"></span></label>
+    <div id="cameraStatus" class="small">OFF</div>
+  </div>
+</div>
+
+<div id="miniSequence" class="mini-seq" aria-label="Sequenza esercizi"></div>
+<div id="toast" class="toast hidden"></div>
+
+
+<script>
+
+const KEY="timer-allenamento-sequence-v4";
+
+let sequence=[
+ {name:"Esercizio 1",work:30,rest:30,bpm:30}
+];
+
+let running=false;
+let phase="work";
+let index=0;
+let remaining=30;
+let timerId=null;
+let lastBeep=0;
+let midBeepDone=false;
+let audio=null;
+let wakeLock=null;
+let rhythmId=null;
+let cameraAlarm=false;
+let cameraAlert=false;
+
+const $=id=>document.getElementById(id);
+
+function positive(v){
+ const n=parseInt(v,10);
+ return Number.isFinite(n)&&n>0?n:1;
+}
+
+function bpmValue(v){
+ const n=parseInt(v,10);
+ if(!Number.isFinite(n)||n<=0)return 0;
+ return Math.min(240,n);
+}
+
+function save(){
+ localStorage.setItem(KEY,JSON.stringify(sequence));
+ $("saved").textContent="salvata";
+}
+
+function load(){
+ try{
+  const x=JSON.parse(localStorage.getItem(KEY));
+  if(Array.isArray(x)&&x.length){
+   sequence=x.map((a,i)=>({
+    name:(typeof a.name==="string"&&a.name.trim())
+      ?a.name.trim()
+      :"Esercizio "+(i+1),
+    work:positive(a.work),
+    rest:positive(a.rest),
+    bpm:(a.bpm==null?30:bpmValue(a.bpm))
+   }));
+  }
+ }catch(e){}
+}
+
+function esc(s){
+ return String(s).replace(/[&<>"']/g,c=>({
+  "&":"&amp;","<":"&lt;",">":"&gt;",
+  '"':"&quot;","'":"&#39;"
+ }[c]));
+}
+
+function render(){
+ $("rows").innerHTML="";
+
+ sequence.forEach((x,i)=>{
+  const r=document.createElement("div");
+  r.className="row";
+
+  r.innerHTML=
+   '<button class="drag-handle" type="button" data-drag="'+i+'" aria-label="Tieni premuto e trascina per spostare l\'esercizio">☰</button>'+
+   '<div class="name-field"><label>NOME ESERCIZIO</label><input type="text" maxlength="28" value="'+
+   esc(x.name)+'" data-i="'+i+'" data-t="name" autocomplete="off"></div>'+
+   '<button class="del" data-del="'+i+'" aria-label="Elimina esercizio">×</button>'+
+   '<div class="fields">'+
+   '<div><label>ESERCIZIO</label><input type="number" min="1" value="'+
+   x.work+'" data-i="'+i+'" data-t="work"></div>'+
+   '<div><label>RECUPERO</label><input type="number" min="1" value="'+
+   x.rest+'" data-i="'+i+'" data-t="rest"></div>'+
+   '<div><label>BPM</label><input type="number" min="0" max="240" step="1" value="'+
+   x.bpm+'" data-i="'+i+'" data-t="bpm" inputmode="numeric"></div>'+
+   '</div>';
+
+  $("rows").appendChild(r);
+ });
+
+ document.querySelectorAll("#rows input").forEach(el=>{
+  el.addEventListener("change",e=>{
+   const i=+e.target.dataset.i;
+   const t=e.target.dataset.t;
+
+   if(t==="name")
+    sequence[i].name=e.target.value.trim()||( "Esercizio "+(i+1));
+   else if(t==="bpm")
+    sequence[i].bpm=bpmValue(e.target.value);
+   else
+    sequence[i][t]=positive(e.target.value);
+
+   save();
+   render();
+
+   if(!running) reset(false);
+  });
+ });
+
+ document.querySelectorAll("[data-del]").forEach(b=>{
+  b.addEventListener("click",()=>{
+   if(sequence.length===1){
+    toast("Deve rimanere almeno un esercizio.");
+    return;
+   }
+
+   sequence.splice(+b.dataset.del,1);
+   save();
+   render();
+
+   if(!running) reset(false);
+  });
+ });
+
+ initDragReorder();
+}
+
+function initDragReorder(){
+ const rowsEl=$("rows");
+ let drag=null;
+ let pressTimer=null;
+
+ function clearPlaceholder(){
+  rowsEl.querySelectorAll(".drag-placeholder").forEach(el=>el.remove());
+ }
+
+ function cancelDrag(){
+  clearTimeout(pressTimer);
+  if(drag){
+   drag.row.classList.remove("dragging");
+   clearPlaceholder();
+   drag=null;
+  }
+ }
+
+ function finishDrag(){
+  if(!drag)return;
+  clearTimeout(pressTimer);
+  const from=drag.from;
+  const to=drag.to;
+  const row=drag.row;
+  row.classList.remove("dragging");
+  clearPlaceholder();
+  drag=null;
+
+  if(to!==from){
+   const moved=sequence.splice(from,1)[0];
+   const target=to>from?to-1:to;
+   sequence.splice(target,0,moved);
+   save();
+   render();
+   if(!running) reset(false);
+   toast("Sequenza aggiornata");
+  }
+ }
+
+ function updateTarget(y){
+  if(!drag||!drag.active)return;
+  const all=[...rowsEl.querySelectorAll(".row")].filter(r=>r!==drag.row);
+  let target=all.length;
+  for(let i=0;i<all.length;i++){
+   const rect=all[i].getBoundingClientRect();
+   if(y<rect.top+rect.height/2){target=i;break;}
+  }
+  drag.to=target;
+  clearPlaceholder();
+  const ph=document.createElement("div");
+  ph.className="drag-placeholder";
+  if(target>=all.length) rowsEl.appendChild(ph);
+  else rowsEl.insertBefore(ph,all[target]);
+ }
+
+ rowsEl.querySelectorAll("[data-drag]").forEach(handle=>{
+  handle.addEventListener("pointerdown",e=>{
+   if(e.button!==undefined&&e.button!==0)return;
+   e.preventDefault();
+   const row=handle.closest(".row");
+   drag={row,from:+handle.dataset.drag,to:+handle.dataset.drag,active:false};
+   try{handle.setPointerCapture(e.pointerId);}catch(err){}
+   pressTimer=setTimeout(()=>{
+    if(!drag)return;
+    drag.active=true;
+    row.classList.add("dragging");
+    updateTarget(e.clientY);
+    if(navigator.vibrate)navigator.vibrate(20);
+   },260);
+  });
+
+  handle.addEventListener("pointermove",e=>{
+   if(!drag)return;
+   if(!drag.active)return;
+   e.preventDefault();
+   updateTarget(e.clientY);
+  });
+
+  handle.addEventListener("pointerup",e=>{
+   if(!drag)return;
+   e.preventDefault();
+   if(drag.active) finishDrag();
+   else cancelDrag();
+  });
+
+  handle.addEventListener("pointercancel",cancelDrag);
+ });
+}
+
+function toast(s){
+ $("toast").textContent=s;
+ $("toast").classList.remove("hidden");
+ clearTimeout(toast.t);
+ toast.t=setTimeout(
+  ()=>$("toast").classList.add("hidden"),1700
+ );
+}
+
+function setColor(){
+ document.body.className=
+  phase==="work"?"work":
+  phase==="rest"?"rest":
+  phase==="done"?"done":"";
+}
+
+function uiColor(){
+ const color=phase==="rest"?"#1597ff":phase==="done"?"#888":"#32d74b";
+ document.documentElement.style.setProperty("--action-color",color);
+ document.documentElement.style.setProperty("--line-color",cameraAlert?"#ff3b30":color);
+}
+
+function updateActionButton(){
+ const b=$("start");
+ const label=$("startLabel");
+ b.className="action-btn "+(running?"running":"ready");
+ if(running){b.textContent="Ⅱ";label.textContent="Pausa";}
+ else {b.textContent="▶";label.textContent="Start";}
+ uiColor();
+}
+
+function nextText(){
+ if(phase==="work"){
+  const x=sequence[index];
+  return '<div class="next-copy"><span class="next-label">Prossimo</span><strong>Recupero</strong></div><div class="next-meta"><div class="next-time">'+formatTime(x.rest)+'</div><div class="next-bpm">pausa</div></div>';
+ }
+ if(index<sequence.length-1){
+  const x=sequence[index+1];
+  return '<div class="next-copy"><span class="next-label">Prossimo esercizio</span><strong>'+esc(x.name)+'</strong></div><div class="next-meta"><div class="next-time">'+formatTime(x.work)+'</div><div class="next-bpm">'+bpmValue(x.bpm)+' BPM</div></div>';
+ }
+ return '<div class="next-copy"><span class="next-label">Prossimo</span><strong>Fine sequenza</strong></div><div class="next-meta"><div class="next-time">✓</div><div class="next-bpm">completato</div></div>';
+}
+
+function formatTime(sec){
+ sec=Math.max(0,Math.floor(sec));
+ const m=Math.floor(sec/60);
+ const s=sec%60;
+ return String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
+}
+
+function updateRing(){
+ const ring=$("timerRing");
+ if(!ring)return;
+ let total=1;
+ if(phase==="work") total=positive(sequence[index].work);
+ else if(phase==="rest") total=positive(sequence[index].rest);
+ else if(phase==="done") total=1;
+ const ratio=Math.max(0,Math.min(1,remaining/total));
+ ring.style.setProperty("--ring-progress",(ratio*360)+"deg");
+ ring.className="timer-ring "+(phase==="rest"?"rest":phase==="done"?"done":"");
+}
+
+function updateCameraUI(){
+ $("cameraAlarm").checked=cameraAlarm;
+ $("cameraAlarmSettings").checked=cameraAlarm;
+ $("cameraStatus").textContent=cameraAlarm?"ON":"OFF";
+ $("bpmSummary").textContent=sequence[index]?.bpm ?? 0;
+}
+
+window.setCameraAlert=setCameraAlert;
+
+function setCameraAlert(active){
+ cameraAlert=!!active;
+ $("displayCard").classList.toggle("camera-alert",cameraAlert);
+ uiColor();
+ if(cameraAlert){
+  tone(220,.35,.9);
+  setTimeout(()=>tone(160,.35,.9),180);
+ }
+}
+
+function renderMiniSequence(){
+ const el=$("miniSequence");
+ if(!el)return;
+ el.innerHTML=sequence.map((x,i)=>{
+  const active=i===index && phase!=="done";
+  const next=i===index+1 && phase!=="done";
+  return '<div class="mini-item '+(active?'active ':'')+(next?'next':'')+'">'+
+    '<div class="mini-dot">'+(i+1)+'</div>'+
+    '<div class="mini-name">'+esc(x.name)+'</div>'+
+    '<div class="mini-time">'+formatTime(x.work)+'</div></div>';
+ }).join('');
+}
+
+function display(){
+ setColor();
+
+ $("exerciseName").textContent=sequence[index]?.name || "Esercizio";
+ $("stepBadge").textContent=(phase==="done"?sequence.length:(index+1))+"/"+sequence.length;
+ $("phasePillText").textContent=phase==="rest"?"Recupero":phase==="done"?"Completato":"Esercizio";
+ $("bpmValue").textContent=(sequence[index]?.bpm ?? 0)+" BPM";
+
+ $("timer").textContent=formatTime(remaining);
+ updateRing();
+ updateActionButton();
+
+ $("status").textContent=
+  phase==="done"
+   ?"Sequenza terminata"
+   :running
+    ?(phase==="work"?"Esegui l'esercizio":"Recupera")
+    :"In pausa";
+
+ $("next").innerHTML=phase==="done"?"":nextText();
+ renderMiniSequence();
+}
+
+function reset(){
+ stop(false);
+ setCameraAlert(false);
+
+ phase="work";
+ index=0;
+ remaining=positive(sequence[0].work);
+ lastBeep=0;
+ midBeepDone=false;
+
+ display();
+}
+
+async function audioReady(){
+ if(!audio)
+  audio=new(window.AudioContext||window.webkitAudioContext)();
+
+ if(audio.state==="suspended")
+  await audio.resume();
+}
+
+function tone(freq,dur=.16,vol=.62){
+ if(!audio)return;
+
+ const now=audio.currentTime;
+ const o=audio.createOscillator();
+ const g=audio.createGain();
+
+ o.type="sine";
+ o.frequency.setValueAtTime(freq,now);
+
+ g.gain.setValueAtTime(.001,now);
+ g.gain.linearRampToValueAtTime(vol,now+.012);
+ g.gain.exponentialRampToValueAtTime(.001,now+dur);
+
+ o.connect(g);
+ g.connect(audio.destination);
+
+ o.start(now);
+ o.stop(now+dur);
+}
+
+function countdown(s){
+ tone(
+  {5:620,4:720,3:830,2:980,1:1150}[s],
+  .19,
+  .66
+ );
+}
+
+function midpointSound(){
+ tone(900,.28,.74);
+}
+
+function changeSound(to){
+ if(to==="rest"){
+  tone(430,.2,.7);
+  setTimeout(()=>tone(430,.2,.7),240);
+ }
+ else if(to==="work"){
+  tone(1050,.18,.7);
+  setTimeout(()=>tone(1350,.3,.74),240);
+ }
+ else{
+  tone(800,.2,.72);
+  setTimeout(()=>tone(1100,.35,.74),240);
+ }
+}
+
+function rhythmSound(){
+ tone(560,.075,.38);
+}
+
+function startRhythm(){
+ stopRhythm();
+ if(!running||phase!=="work")return;
+ const bpm=bpmValue(sequence[index].bpm);
+ if(bpm<=0)return;
+ const interval=60000/bpm;
+ rhythmId=setInterval(()=>{
+  if(!running||phase!=="work"){ stopRhythm(); return; }
+  if(remaining>5)rhythmSound();
+ },interval);
+}
+
+function stopRhythm(){
+ if(rhythmId){clearInterval(rhythmId);rhythmId=null;}
+}
+
+async function lockScreen(){
+ try{
+  if("wakeLock"in navigator)
+   wakeLock=await navigator.wakeLock.request("screen");
+ }catch(e){}
+}
+
+function unlockScreen(){
+ if(wakeLock){
+  wakeLock.release().catch(()=>{});
+  wakeLock=null;
+ }
+}
+
+function finishPhase(){
+ stopRhythm();
+ if(phase==="work"){
+  phase="rest";
+  remaining=positive(sequence[index].rest);
+  lastBeep=0;
+  midBeepDone=false;
+
+  changeSound("rest");
+  display();
+
+  return true;
+ }
+
+ if(index<sequence.length-1){
+  index++;
+  phase="work";
+  remaining=positive(sequence[index].work);
+  lastBeep=0;
+  midBeepDone=false;
+
+  changeSound("work");
+  display();
+  if(running)startRhythm();
+
+  return true;
+ }
+
+ running=false;
+ phase="done";
+ remaining=0;
+
+ unlockScreen();
+ changeSound("done");
+ display();
+
+ return false;
+}
+
+function tick(){
+ const total=positive(sequence[index].work);
+ const midpoint=Math.ceil(total/2);
+
+ if(
+  phase==="work"&&
+  !midBeepDone&&
+  remaining===midpoint&&
+  remaining>5
+ ){
+  midpointSound();
+  midBeepDone=true;
+ }
+
+ if(
+  remaining<=5&&
+  remaining>=1&&
+  remaining!==lastBeep
+ ){
+  countdown(remaining);
+  lastBeep=remaining;
+ }
+
+ if(remaining<=1){
+  clearInterval(timerId);
+  timerId=null;
+
+  if(finishPhase()&&running)
+   timerId=setInterval(tick,1000);
+
+  return;
+ }
+
+ remaining--;
+ display();
+}
+
+async function start(){
+ if(running||phase==="done")return;
+ $("settingsPanel").classList.add("hidden");
+ $("back").classList.add("hidden");
+
+ await audioReady();
+ await lockScreen();
+
+ tone(700,.08,.4);
+
+ running=true;
+ display();
+ startRhythm();
+
+ timerId=setInterval(tick,1000);
+}
+
+function stop(show=true){
+ running=false;
+ stopRhythm();
+
+ if(timerId){
+  clearInterval(timerId);
+  timerId=null;
+ }
+
+ unlockScreen();
+
+ if(show&&phase!=="done")
+  display();
+}
+
+$("add").onclick=()=>{
+ sequence.push({
+  name:"Esercizio "+(sequence.length+1),
+  work:30,
+  rest:30,
+  bpm:30
+ });
+
+ save();
+ render();
+};
+
+$("start").onclick=()=>{ if(running) stop(true); else start(); };
+$("reset").onclick=reset;
+
+$("spotify").onclick=()=>{
+ window.location.href="https://open.spotify.com/";
+};
+
+function setCameraAlarm(value){
+ cameraAlarm=!!value;
+ updateCameraUI();
+ toast(cameraAlarm?"Allarme telecamera ON":"Allarme telecamera OFF");
+}
+$("cameraAlarm").addEventListener("change",e=>setCameraAlarm(e.target.checked));
+$("cameraAlarmSettings").addEventListener("change",e=>setCameraAlarm(e.target.checked));
+
+$("gear").onclick=()=>{
+ $("settingsPanel").classList.remove("hidden");
+ $("back").classList.remove("hidden");
+};
+$("closeSettings").onclick=()=>{
+ $("settingsPanel").classList.add("hidden");
+ $("back").classList.add("hidden");
+};
+$("back").onclick=()=>{
+ $("settingsPanel").classList.add("hidden");
+ $("back").classList.add("hidden");
+};
+$("testCamera").onclick=async()=>{
+ await audioReady();
+ setCameraAlert(true);
+ setTimeout(()=>setCameraAlert(false),3000);
+ toast("Test allarme telecamera");
+};
+
+document.addEventListener("visibilitychange",()=>{
+ if(document.visibilityState==="visible"&&running)
+  lockScreen();
+});
+
+load();
+render();
+updateCameraUI();
+reset();
+uiColor();
+updateActionButton();
+
+</script>
+</body>
+</html>
